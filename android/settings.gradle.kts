@@ -18,5 +18,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "AM32Offline"
+rootProject.name = "AM32Mobile"
 include(":app")

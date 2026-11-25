@@ -13,11 +13,11 @@ val keystoreProps = Properties().apply {
 }
 
 android {
-    namespace = "app.am32.offline"
+    namespace = "app.am32.mobile"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "app.am32.offline"
+        applicationId = "app.am32.mobile"
         minSdk = 24
         // 34 on purpose: targeting 35 forces edge-to-edge and the web UI would end up
         // underneath the status and navigation bars.

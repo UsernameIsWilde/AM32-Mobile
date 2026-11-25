@@ -4,7 +4,7 @@
 #   .\scripts\build.ps1 -SkipWeb           keep the web app that is already in the assets
 #   .\scripts\build.ps1 -WebRef master     build the newest upstream configurator
 #
-# Result: dist\AM32-Offline-<version>.apk
+# Result: dist\AM32-Mobile-<version>.apk
 #
 # Firmware is not part of the APK: the app downloads it from am32.ca when it is needed
 # and keeps it on the phone.
@@ -50,13 +50,13 @@ if (-not (Test-Path $props)) {
     $password = [Convert]::ToBase64String($bytes) -replace '[^A-Za-z0-9]', 'x'
     Invoke-Checked 'keytool' {
         keytool -genkeypair -keystore (Join-Path $Signing 'release.jks') -storetype PKCS12 `
-            -alias am32offline -keyalg RSA -keysize 2048 -validity 10000 `
-            -storepass $password -keypass $password -dname 'CN=AM32 Offline'
+            -alias am32mobile -keyalg RSA -keysize 2048 -validity 10000 `
+            -storepass $password -keypass $password -dname 'CN=AM32 Mobile'
     }
     @(
         'storeFile=signing/release.jks',
         "storePassword=$password",
-        'keyAlias=am32offline',
+        'keyAlias=am32mobile',
         "keyPassword=$password"
     ) | Set-Content -Encoding ascii $props
 }
@@ -73,7 +73,7 @@ if (-not (Test-Path $apk)) { throw "Gradle reported success but $apk is missing.
 
 $version = (Select-String -Path (Join-Path $Android 'app\build.gradle.kts') -Pattern 'versionName\s*=\s*"([^"]+)"').Matches[0].Groups[1].Value
 New-Item -ItemType Directory -Force $Dist | Out-Null
-$out = Join-Path $Dist "AM32-Offline-$version.apk"
+$out = Join-Path $Dist "AM32-Mobile-$version.apk"
 Copy-Item -Force $apk $out
 
 Write-Host ''

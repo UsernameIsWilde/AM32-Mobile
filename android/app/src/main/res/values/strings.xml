@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">AM32 Offline</string>
+    <string name="app_name">AM32 Mobile</string>
 
     <string name="usb_none_found">No USB serial device found. Plug in the flight controller or the USB adapter with an OTG cable.</string>
     <string name="usb_choose_device">Select a USB device</string>

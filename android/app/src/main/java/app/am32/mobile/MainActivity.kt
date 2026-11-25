@@ -1,4 +1,4 @@
-package app.am32.offline
+package app.am32.mobile
 
 import android.annotation.SuppressLint
 import android.app.Activity

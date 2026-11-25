@@ -1,4 +1,4 @@
-# AM32 Offline – the AM32 configurator for Android
+# AM32 Mobile – the AM32 configurator for Android
 
 The [am32.ca](https://am32.ca) configurator packaged as an Android app. The user interface
 is inside the APK, so ESC settings can be read and changed with no internet connection at
@@ -27,13 +27,13 @@ available and keeps it on the phone.
   from a local `.hex` file never need internet.
 
 Downloaded files live in the app's internal storage and can be removed with
-*Settings → Apps → AM32 Offline → Storage → Clear data*.
+*Settings → Apps → AM32 Mobile → Storage → Clear data*.
 
 ## Using it on the phone
 
-1. Install `dist\AM32-Offline-<version>.apk` (installing from unknown sources has to be allowed).
+1. Install `dist\AM32-Mobile-<version>.apk` (installing from unknown sources has to be allowed).
 2. Connect the flight controller or the USB serial adapter with a **USB OTG** cable or
-   adapter. Android offers to open *AM32 Offline*; accept, which also grants USB access.
+   adapter. Android offers to open *AM32 Mobile*; accept, which also grants USB access.
 3. In the app: **Port select** → pick the device → **Connect** → **Read**.
    For a direct connection to a single ESC through an adapter, tick **Direct**.
 

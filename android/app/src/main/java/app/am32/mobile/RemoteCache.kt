@@ -1,4 +1,4 @@
-package app.am32.offline
+package app.am32.mobile
 
 import android.content.Context
 import android.net.ConnectivityManager
@@ -65,7 +65,7 @@ class RemoteCache(context: Context) {
 
     private val root = File(context.filesDir, "am32.ca")
     private val connectivity = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-    private val userAgent = "AM32-Offline-Android/${BuildConfig.VERSION_NAME}"
+    private val userAgent = "AM32-Mobile-Android/${BuildConfig.VERSION_NAME}"
 
     /** When each refreshable entry was last fetched in this run of the app. */
     private val refreshed = ConcurrentHashMap<String, Long>()
