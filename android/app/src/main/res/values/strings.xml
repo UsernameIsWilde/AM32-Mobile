@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">AM32 Offline</string>
+
+    <string name="usb_none_found">No USB serial device found. Plug in the flight controller or the USB adapter with an OTG cable.</string>
+    <string name="usb_choose_device">Select a USB device</string>
+    <string name="usb_permission_denied">USB access was denied.</string>
+    <string name="usb_disconnected">USB device disconnected.</string>
+    <string name="cancel">Cancel</string>
+
+    <string name="file_saved">Saved: %1$s</string>
+    <string name="file_save_failed">Could not save the file: %1$s</string>
+    <string name="file_chooser_title">Select a file</string>
+    <string name="file_chooser_missing">No file manager app is installed.</string>
+    <string name="no_browser">This link needs an internet browser: %1$s</string>
+    <string name="load_failed">The bundled web app is missing from this build. Run scripts\\build.ps1 again.</string>
+</resources>

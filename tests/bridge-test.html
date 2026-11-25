@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>bridge.js test</title>
+<script>
+// Stand-ins for the objects UsbSerialBridge.kt and FileBridge.kt expose to the page.
+const KEY = '/dev/bus/usb/001/002';
+const DEVICE = { key: KEY, vid: 0x0483, pid: 0x5740, name: 'Mock FC (0483:5740)' };
+
+const bytesOf = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+const b64Of = bytes => btoa(String.fromCharCode(...bytes));
+
+window.mock = {
+    granted: false,
+    attached: true,
+    calls: [],
+    written: [],
+    saved: [],
+    // what the "device" answers to the next write, delivered in two USB packets
+    reply: null
+};
+
+window.AM32Usb = {
+    listPorts () {
+        return JSON.stringify(mock.granted && mock.attached ? [DEVICE] : []);
+    },
+    requestPort (id, vendorIds) {
+        mock.calls.push(['requestPort', JSON.parse(vendorIds)]);
+        setTimeout(() => {
+            if (mock.attached) {
+                mock.granted = true;
+                window.__am32serial.onPortGranted(id, DEVICE);
+            } else {
+                window.__am32serial.onPortDenied(id);
+            }
+        }, 5);
+    },
+    open (key, baudRate, dataBits, stopBits, parity) {
+        mock.calls.push(['open', key, baudRate, dataBits, stopBits, parity]);
+        return '';
+    },
+    write (key, base64) {
+        const bytes = bytesOf(base64);
+        mock.written.push(Array.from(bytes));
+        const reply = mock.reply;
+        if (reply) {
+            const cut = Math.min(4, reply.length);
+            setTimeout(() => window.__am32serial.onData(key, b64Of(reply.slice(0, cut))), 5);
+            if (reply.length > cut) {
+                setTimeout(() => window.__am32serial.onData(key, b64Of(reply.slice(cut))), 15);
+            }
+        }
+        return '';
+    },
+    close (key) {
+        mock.calls.push(['close', key]);
+        return '';
+    },
+    setSignals (key, dtr, rts, brk) {
+        mock.calls.push(['setSignals', dtr, rts, brk]);
+        return '';
+    },
+    getSignals () {
+        return JSON.stringify({ dataCarrierDetect: false, clearToSend: true, ringIndicator: false, dataSetReady: false });
+    }
+};
+
+window.AM32Files = {
+    saveBase64 (name, base64) { mock.saved.push(['base64', name, Array.from(bytesOf(base64))]); },
+    saveUrl (url, name) { mock.saved.push(['url', url, name]); }
+};
+</script>
+<script src="/bridge.js"></script>
+</head>
+<body>
+<a id="firmware" href="/api/file/releases/v2.22/AM32_TEST_F051_2.22.hex" download="AM32_TEST_F051_2.22.hex">hex</a>
+<script type="module">
+// The same two libraries the configurator talks to the port with.
+import { WebSerial } from '/lib/webserial-wrapper.js';
+import { SerialTransport } from '/lib/serial-msp/serial/index.js';
+
+const results = [];
+const check = (name, ok, detail) => results.push({ name, ok: !!ok, detail: ok ? undefined : detail });
+const same = (a, b) => JSON.stringify(Array.from(a ?? [])) === JSON.stringify(Array.from(b ?? []));
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+// MSP v1: "$M<" len cmd [payload] checksum - MSP_API_VERSION request and its answer
+const REQUEST = Uint8Array.from([0x24, 0x4D, 0x3C, 0x00, 0x01, 0x01]);
+const RESPONSE = Uint8Array.from([0x24, 0x4D, 0x3E, 0x03, 0x01, 0x00, 0x01, 0x2E, 0x03 ^ 0x01 ^ 0x00 ^ 0x01 ^ 0x2E]);
+
+function makeTransport (serial, port) {
+    let stream = null;
+    return {
+        transport: new SerialTransport({
+            log: () => {}, logError: () => {}, logWarning: () => {},
+            serial, port,
+            getStream: () => stream,
+            setStream: (s) => { stream = s; }
+        }),
+        stream: () => stream,
+        reset: () => { stream = null; }
+    };
+}
+
+try {
+    check('navigator.serial exists', 'serial' in navigator);
+    check('no ports before permission', (await navigator.serial.getPorts()).length === 0);
+
+    // --- the configurator's "Port select" -------------------------------------------
+    let connectEvents = 0;
+    navigator.serial.addEventListener('connect', () => connectEvents++);
+    const port = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x0483 }, { usbVendorId: 0x1A86 }] });
+    check('requestPort passes the vendor filter to Android', same(mock.calls[0][1], [0x0483, 0x1A86]), mock.calls[0]);
+    check('getInfo reports vendor and product id', port.getInfo().usbVendorId === 0x0483 && port.getInfo().usbProductId === 0x5740);
+    const first = await navigator.serial.getPorts();
+    const second = await navigator.serial.getPorts();
+    check('getPorts keeps returning the same port object', first.length === 1 && first[0] === port && second[0] === port);
+    check('connect event fired once', connectEvents === 1, connectEvents);
+    check('closed port has no streams', port.readable === null && port.writable === null);
+
+    // --- "Connect" ------------------------------------------------------------------
+    const serial = new WebSerial();
+    await serial.openPort(port, { baudRate: 115200 });
+    const open = mock.calls.find(c => c[0] === 'open');
+    check('open passes 115200 8N1', same(open, ['open', KEY, 115200, 8, 1, 'none']), open);
+    check('open port has streams', port.readable instanceof ReadableStream && port.writable instanceof WritableStream);
+    check('opening twice is rejected', await port.open({ baudRate: 9600 }).then(() => false, e => e.name === 'InvalidStateError'));
+
+    // --- request / response through the real transport --------------------------------
+    let link = makeTransport(serial, port);
+    mock.reply = RESPONSE;
+    const answer = await link.transport.exchange(REQUEST.buffer, { timeout: 500 });
+    check('the request bytes reach the USB layer unchanged', same(mock.written[0], REQUEST), mock.written[0]);
+    check('a reply split over two USB packets is reassembled', same(answer, RESPONSE), answer && Array.from(answer));
+
+    const again = await link.transport.exchange(REQUEST.buffer, { timeout: 500 });
+    check('a second exchange on the same stream works', same(again, RESPONSE), again && Array.from(again));
+
+    mock.reply = null;
+    const started = performance.now();
+    const silence = await link.transport.exchange(REQUEST.buffer, { timeout: 150 });
+    check('a silent device ends in a timeout, not a hang', silence === null && performance.now() - started < 1500, silence);
+
+    await port.setSignals({ dataTerminalReady: false, requestToSend: true });
+    const signals = mock.calls.find(c => c[0] === 'setSignals');
+    check('setSignals maps DTR/RTS and leaves break alone', same(signals, ['setSignals', 0, 1, -1]), signals);
+    check('getSignals', (await port.getSignals()).clearToSend === true);
+
+    // --- "Disconnect", exactly as SerialDevice.vue does it ----------------------------
+    link.stream().reader?.releaseLock();
+    await link.stream().port.close();
+    check('close reaches the USB layer', mock.calls.some(c => c[0] === 'close'));
+    check('closed port has no streams again', port.readable === null && port.writable === null);
+    check('closing a closed port is harmless', await port.close().then(() => true, () => false));
+
+    // --- reconnect --------------------------------------------------------------------
+    await serial.openPort(port, { baudRate: 19200 });
+    link = makeTransport(serial, port);
+    mock.reply = RESPONSE;
+    const afterReopen = await link.transport.exchange(REQUEST.buffer, { timeout: 500 });
+    check('exchange works after reconnecting', same(afterReopen, RESPONSE), afterReopen && Array.from(afterReopen));
+
+    // --- cable pulled while connected -------------------------------------------------
+    let disconnects = 0;
+    port.ondisconnect = () => disconnects++;
+    mock.attached = false;
+    window.__am32serial.onLost(KEY);
+    check('unplugging closes the streams', port.readable === null);
+    check('unplugging fires disconnect', disconnects === 1, disconnects);
+    check('an unplugged device is no longer listed', (await navigator.serial.getPorts()).length === 0);
+    check('requestPort without a device rejects with NotFoundError',
+        await navigator.serial.requestPort({}).then(() => false, e => e.name === 'NotFoundError'));
+
+    // --- plugged back in: a new port object, the old one stays dead --------------------
+    mock.attached = true;
+    const replugged = await navigator.serial.getPorts();
+    check('a re-plugged device shows up as a new port', replugged.length === 1 && replugged[0] !== port);
+
+    // --- downloads --------------------------------------------------------------------
+    // "Save config" in the configurator: detached link, blob URL, revoked right after click
+    const config = Uint8Array.from([1, 2, 0, 2, 22, 255]);
+    const link1 = document.createElement('a');
+    link1.href = URL.createObjectURL(new Blob([config.buffer], { type: 'application/octet-stream' }));
+    link1.download = 'esc1_config.bin';
+    link1.click();
+    URL.revokeObjectURL(link1.href);
+    await wait(100);
+    check('a blob download is handed to Android with its name and bytes',
+        mock.saved.length === 1 && mock.saved[0][1] === 'esc1_config.bin' && same(mock.saved[0][2], config), mock.saved);
+
+    // a firmware link on the Downloads page, tapped by the user
+    let navigated = false;
+    window.addEventListener('beforeunload', () => { navigated = true; });
+    document.getElementById('firmware').dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+    await wait(50);
+    check('a tapped download link is handed to Android instead of navigating',
+        !navigated && mock.saved.length === 2 && mock.saved[1][0] === 'url' &&
+        mock.saved[1][1].endsWith('/api/file/releases/v2.22/AM32_TEST_F051_2.22.hex') && mock.saved[1][2] === 'AM32_TEST_F051_2.22.hex',
+        mock.saved[1]);
+} catch (error) {
+    check('test run completed', false, String(error && error.stack || error));
+}
+
+await fetch('/result', { method: 'POST', body: JSON.stringify(results) });
+document.body.append(JSON.stringify(results));
+</script>
+</body>
+</html>

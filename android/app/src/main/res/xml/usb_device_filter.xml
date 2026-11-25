@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Same vendor list the web configurator passes to navigator.serial.requestPort().
+    Android wants decimal ids here; the hex value is in the comment.
+-->
+<resources>
+    <!-- flight controllers (USB CDC / VCP) -->
+    <usb-device vendor-id="1155" />  <!-- 0x0483 STMicroelectronics -->
+    <usb-device vendor-id="11836" /> <!-- 0x2E3C Artery -->
+    <usb-device vendor-id="11914" /> <!-- 0x2E8A Raspberry Pi -->
+    <usb-device vendor-id="4617" />  <!-- 0x1209 pid.codes -->
+    <usb-device vendor-id="9900" />  <!-- 0x26AC 3D Robotics / PX4 -->
+    <usb-device vendor-id="10156" /> <!-- 0x27AC -->
+    <usb-device vendor-id="11694" /> <!-- 0x2DAE Hex / CubePilot -->
+    <usb-device vendor-id="12642" /> <!-- 0x3162 Holybro -->
+    <usb-device vendor-id="13735" /> <!-- 0x35A7 -->
+    <usb-device vendor-id="10473" /> <!-- 0x28E9 GigaDevice -->
+
+    <!-- USB serial adapters (direct connection to a single ESC) -->
+    <usb-device vendor-id="6790" />  <!-- 0x1A86 QinHeng CH340 / CH341 / CH9102 -->
+    <usb-device vendor-id="1027" />  <!-- 0x0403 FTDI -->
+    <usb-device vendor-id="17224" /> <!-- 0x4348 WCH -->
+    <usb-device vendor-id="9914" />  <!-- 0x26BA -->
+    <usb-device vendor-id="4292" />  <!-- 0x10C4 Silicon Labs CP210x -->
+</resources>

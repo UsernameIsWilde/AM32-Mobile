@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="usb_none_found">USB serial įrenginys nerastas. Prijunkite skrydžio valdiklį arba USB adapterį per OTG laidą.</string>
+    <string name="usb_choose_device">Pasirinkite USB įrenginį</string>
+    <string name="usb_permission_denied">Prieiga prie USB įrenginio nesuteikta.</string>
+    <string name="usb_disconnected">USB įrenginys atjungtas.</string>
+    <string name="cancel">Atšaukti</string>
+
+    <string name="file_saved">Išsaugota: %1$s</string>
+    <string name="file_save_failed">Nepavyko išsaugoti failo: %1$s</string>
+    <string name="file_chooser_title">Pasirinkite failą</string>
+    <string name="file_chooser_missing">Neįdiegta jokia failų tvarkyklė.</string>
+    <string name="no_browser">Šiai nuorodai reikia interneto naršyklės: %1$s</string>
+    <string name="load_failed">Šiame build\'e nėra įdėtos web programos. Paleiskite scripts\\build.ps1 dar kartą.</string>
+</resources>

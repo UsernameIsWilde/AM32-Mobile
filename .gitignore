@@ -1,0 +1,27 @@
+# portable toolchain and caches (scripts\setup-tools.ps1)
+/tools/
+
+# settings for one computer (build folder, existing SDK)
+/scripts/env.local.ps1
+
+# generated web bundle inside the APK
+/android/app/src/main/assets/www/
+
+# gradle / android studio
+/android/.gradle/
+/android/build/
+/android/app/build/
+/android/local.properties
+/android/.idea/
+*.iml
+
+# signing key (back it up somewhere safe, but never commit it)
+/android/signing/
+*.jks
+*.keystore
+
+# build output
+/dist/
+
+# kotlin compiler daemon logs
+/android/.kotlin/

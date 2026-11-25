@@ -1,0 +1,129 @@
+/*
+ * Phone-only corrections for the places where the configurator assumes a desktop window.
+ * Injected next to bridge.js by LocalContent.kt, so the web app itself stays unmodified.
+ * The selectors are the Tailwind utility classes upstream puts on those elements; classes
+ * with brackets in their name are matched with [class~="..."].
+ *
+ * tests/e2e-test.mjs checks the result at phone width.
+ */
+@media (max-width: 640px) {
+    /* --- Downloads: file names in four fixed columns overlap ---------------------------- */
+    .grid.grid-cols-4 {
+        grid-template-columns: minmax(0, 1fr) !important;
+    }
+
+    .grid.grid-cols-4 > div {
+        padding-top: 0.6rem;
+        padding-bottom: 0.6rem;
+        overflow-wrap: anywhere;
+    }
+
+    /* --- Footer bar: three cells with fixed minimum widths (700px together) ------------- */
+    .fixed.bottom-0.left-0.right-0 {
+        font-size: 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .fixed.bottom-0.left-0.right-0 > div {
+        min-width: 0 !important;
+        white-space: nowrap;
+    }
+
+    .fixed.bottom-0.left-0.right-0 > div > .flex {
+        gap: 0.5rem;
+    }
+
+    /* --- Header (layouts/default.vue) ---------------------------------------------------- */
+    /* the logo takes a quarter of the screen */
+    [class~="max-h-[180px]"] {
+        max-height: 84px !important;
+    }
+
+    /*
+     * The log is hidden below 640px. It is the only thing that shows what a connection
+     * attempt is doing (it can take many seconds), so bring it back as a short strip.
+     */
+    .flex-grow.hidden[class~="h-[200px]"] {
+        display: block !important;
+        height: 6.5rem;
+        max-height: 6.5rem;
+        padding: 0 0.5rem;
+    }
+
+    .flex-grow.hidden[class~="h-[200px]"] .text-sm {
+        font-size: 0.7rem;
+        line-height: 1rem;
+        font-weight: 400;
+    }
+
+    /* its "expand" icon is position: fixed and would float over the page while scrolling */
+    .flex-grow.hidden[class~="h-[200px]"] .fixed {
+        position: static;
+    }
+
+    /* --- Settings groups (SettingFieldGroup.vue) ----------------------------------------- */
+    /* "Essentials" is given half the width, which is a sliver on a phone */
+    [class~="min-h-[50px]"].border.rounded {
+        width: 100% !important;
+    }
+
+    /* checkboxes and radios sit beside the sliders: stack them above instead */
+    [class~="min-h-[50px]"].border.rounded > .flex {
+        flex-direction: column;
+    }
+
+    /* (only below a block of checkboxes: a group that starts with sliders keeps its padding,
+       or the status dots would touch the group title) */
+    [class~="min-h-[50px]"].border.rounded > .flex > div + .grid {
+        padding-top: 0.5rem;
+    }
+
+    /* --- ESC cards: their selection ring is cut off at the screen edges ------------------ */
+    .grid.grid-cols-1.gap-4.w-full.justify-center,
+    .flex.gap-4.w-full.justify-center {
+        padding-left: 6px;
+        padding-right: 6px;
+    }
+
+    /* Tune tab: the cards are put side by side in one row and run off both screen edges */
+    .flex.gap-4.w-full.justify-center {
+        flex-direction: column;
+    }
+
+    /* three sliders in a row leave about 90px each */
+    [class~="min-h-[50px]"].border.rounded > .flex > .grid.grid-cols-3 {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    }
+
+    /* --- One setting (SettingField.vue) -------------------------------------------------- */
+    /*
+     * The per-ESC status dots are pinned to the top right corner of the field, on top of
+     * the label as soon as the field is narrow. Give them a row of their own above it.
+     */
+    .grid.gap-4.p-4 > .relative {
+        padding-top: 1.1rem;
+    }
+
+    .grid.gap-4.p-4 > .relative > .absolute.top-0.right-0 {
+        left: 0;
+        right: auto;
+        padding-top: 0;
+    }
+
+    .grid.gap-4.p-4 label,
+    .grid.gap-4.p-4 .mb-1 {
+        overflow-wrap: anywhere;
+    }
+
+    /*
+     * Value and unit are two flex items; a long unit ("% duty cycle per ms") wraps inside
+     * its own box and the second line ends up indented. Let them flow as one line of text.
+     */
+    .grid.gap-4.p-4 > .relative [class="flex"] {
+        display: block;
+    }
+
+    .grid.gap-4.p-4 > .relative [class="flex"] > div {
+        display: inline;
+    }
+}
