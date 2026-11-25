@@ -1,113 +1,118 @@
-# AM32 Offline – AM32 konfigūratorius Android telefonui
+# AM32 Offline – the AM32 configurator for Android
 
-[am32.ca](https://am32.ca) konfigūratorius, supakuotas į Android programėlę. Pati sąsaja yra
-APK viduje, todėl ESC nustatymus galima skaityti ir keisti visai be interneto. Firmware į
-APK nededamas: programėlė jį atsisiunčia iš am32.ca, kai yra ryšys, ir išsaugo telefone.
+The [am32.ca](https://am32.ca) configurator packaged as an Android app. The user interface
+is inside the APK, so ESC settings can be read and changed with no internet connection at
+all. Firmware is not bundled: the app downloads it from am32.ca when a connection is
+available and keeps it on the phone.
 
-## Kaip tai veikia
+## How it works
 
-| Dalis | Kas tai |
+| Part | What it is |
 | --- | --- |
-| `android/app/src/main/assets/www` | Originalus konfigūratorius ([am32-firmware/am32-configurator](https://github.com/am32-firmware/am32-configurator)), sukompiliuotas į statinį puslapį. Generuojamas, į git nededamas. |
-| `LocalContent.kt` | Atstoja am32.ca serverį: WebView visas užklausas gauna iš čia. Puslapio failai – iš APK, `/api/...` – per `RemoteCache`. |
-| `RemoteCache.kt` | Vienintelė vieta, kuri jungiasi prie interneto (tik `https://am32.ca`). Viską, ką atsisiuntė, laiko telefone. `.hex` failai prieš išsaugant patikrinami (Intel HEX kontrolinės sumos). |
-| `UsbSerialBridge.kt` + `assets/bridge/bridge.js` | Android WebView neturi Web Serial API. `bridge.js` puslapiui pateikia `navigator.serial`, o tikrą darbą per USB atlieka [usb-serial-for-android](https://github.com/mik3y/usb-serial-for-android) (CDC-ACM skrydžio valdikliai, CH340, FTDI, CP210x, Prolific). |
-| `FileBridge.kt` | „Atsisiuntimai“ iš puslapio (ESC konfigūracija, `.hex`) – į `Download/AM32`. |
+| `android/app/src/main/assets/www` | The original configurator ([am32-firmware/am32-configurator](https://github.com/am32-firmware/am32-configurator)) built into a static site. Generated, not kept in git. |
+| `LocalContent.kt` | Stands in for the am32.ca server: every request the WebView makes ends up here. Page files come from the APK, `/api/...` goes through `RemoteCache`. |
+| `RemoteCache.kt` | The only place that talks to the internet (`https://am32.ca` only). Everything it downloads stays on the phone. `.hex` files are verified (Intel HEX checksums) before they are stored. |
+| `UsbSerialBridge.kt` + `assets/bridge/bridge.js` | Android's WebView has no Web Serial API. `bridge.js` gives the page `navigator.serial`; the USB work is done by [usb-serial-for-android](https://github.com/mik3y/usb-serial-for-android) (CDC-ACM flight controllers, CH340, FTDI, CP210x, Prolific). |
+| `FileBridge.kt` | "Downloads" from the page (an ESC configuration, a `.hex`) go to `Download/AM32`. |
+| `assets/bridge/mobile.css` | Phone layout corrections, applied on top of the unmodified web app. |
 
-### Su internetu ir be jo
+### With and without internet
 
-- **Yra internetas:** firmware sąrašas atnaujinamas iš am32.ca (ne dažniau kaip kas 5 min.),
-  nauji leidimai matomi iškart. Pasirinktas failas atsisiunčiamas ir lieka telefone.
-- **Nėra interneto:** rodomi tik tie firmware failai, kurie jau yra telefone. Norint
-  lauke flashinti be ryšio, reikiamą failą reikia bent kartą atsisiųsti namie: skiltyje
-  **Downloads** paspausti ant savo ESC `.hex` (arba vieną kartą jį suflashinti).
-- ESC nustatymų skaitymas, keitimas, konfigūracijos išsaugojimas / įkėlimas iš failo ir
-  flashinimas iš vietinio `.hex` failo interneto nereikalauja niekada.
+- **Online:** the firmware list is refreshed from am32.ca (at most every 5 minutes), so
+  new releases show up right away. A file that is selected is downloaded and kept.
+- **Offline:** only the firmware files that are already on the phone are listed. To flash
+  in the field without a connection, download the file at least once beforehand: tap the
+  `.hex` for your ESC on the **Downloads** page (or flash it once).
+- Reading and changing ESC settings, saving / applying a configuration file and flashing
+  from a local `.hex` file never need internet.
 
-Atsisiųsti failai laikomi programėlės vidinėje atmintyje; išvalyti galima per
-*Nustatymai → Programos → AM32 Offline → Saugykla → Išvalyti duomenis*.
+Downloaded files live in the app's internal storage and can be removed with
+*Settings → Apps → AM32 Offline → Storage → Clear data*.
 
-## Naudojimas telefone
+## Using it on the phone
 
-1. Įdiekite `dist\AM32-Offline-<versija>.apk` (reikės leisti diegimą iš nežinomų šaltinių).
-2. Prijunkite skrydžio valdiklį arba USB–serial adapterį per **USB OTG** laidą / adapterį.
-   Android pasiūlys atidaryti *AM32 Offline* – sutikite (taip iškart suteikiama USB prieiga).
-3. Programėlėje: **Port select** → pasirinkite įrenginį → **Connect**.
-   Tiesioginiam jungimui prie vieno ESC per adapterį pažymėkite **Direct**.
+1. Install `dist\AM32-Offline-<version>.apk` (installing from unknown sources has to be allowed).
+2. Connect the flight controller or the USB serial adapter with a **USB OTG** cable or
+   adapter. Android offers to open *AM32 Offline*; accept, which also grants USB access.
+3. In the app: **Port select** → pick the device → **Connect** → **Read**.
+   For a direct connection to a single ESC through an adapter, tick **Direct**.
 
-Ekranas programėlėje neužgęsta, kad flashinimas nenutrūktų. Flashinimo metu neatjunkite
-laido ir neuždarykite programėlės.
+The screen stays on while the app is open so that flashing is not interrupted. Do not
+unplug the cable or close the app while flashing.
 
-## Surinkimas (Windows)
+The strip under the logo is the log: it shows what a connection attempt is doing. The
+first Connect can take a few seconds when the flight controller was left in 4-way mode.
+
+## Building (Windows)
 
 ```powershell
 powershell -ExecutionPolicy RemoteSigned -File scripts\build.ps1
 ```
 
-Skriptas sukompiliuoja konfigūratorių ir surenka pasirašytą APK. Trūkstamus įrankius
-(Node 20, JDK 17, Gradle) atsisiunčia į `tools\` – sistemoje niekas nediegiama.
+The script builds the configurator and assembles a signed APK. Missing tools (Node 20,
+JDK 17, Gradle) are downloaded into `tools\`; nothing is installed system-wide.
 
-Šiam kompiuteriui skirti nustatymai yra `scripts\env.local.ps1`:
-
-- `AM32_ANDROID_SDK` – jau esantis Android SDK (dabar `D:\esc-configurator-android-build\android-sdk`).
-  Jei šio nustatymo nėra, SDK atsiunčiamas į `tools\android-sdk` ir paprašoma sutikti su
-  Google licencijomis.
-- `AM32_BUILD_ROOT` – kur vyksta visas build darbas (dabar `D:\am32-android-build`).
-  Projektas guli išoriniame exFAT diske, kuriame `node_modules` ir Gradle yra nepakenčiamai
-  lėti, todėl kompiliuojama vidiniame NTFS diske. Tą aplanką galima bet kada ištrinti –
-  kitas surinkimas jį atkurs.
-
-| Komanda | Ką daro |
-| --- | --- |
-| `scripts\build.ps1` | Viskas nuo nulio. |
-| `scripts\build.ps1 -SkipWeb` | Tik Android dalis, web dalis paliekama esama. |
-| `scripts\build.ps1 -WebRef master` | Naujausias konfigūratoriaus kodas vietoj užfiksuotos versijos. |
-
-Konfigūratoriaus versija užfiksuota `scripts\build-web.ps1` (`$Ref`). Kai išeina naujas AM32
-firmware su pakeistu nustatymų (EEPROM) išdėstymu, gali reikėti ir naujesnio konfigūratoriaus:
-pakelkite `$Ref` (arba naudokite `-WebRef master`), padidinkite `versionCode` / `versionName`
-faile `android\app\build.gradle.kts` ir surinkite iš naujo. Ką tiksliai keičiame originaliame
-kode, aprašyta `scripts\patch-web.mjs` pradžioje.
-
-### Pasirašymo raktas
-
-Pirmo surinkimo metu sukuriamas `android\signing\` (raktas + slaptažodis). Android leidžia
-atnaujinti programėlę tik tuo pačiu raktu pasirašytu APK, todėl **pasidarykite šio aplanko
-kopiją**. Jį praradus, naują versiją pavyks įdiegti tik prieš tai pašalinus senąją.
-
-## Testai
-
-Abu leidžiami kompiuterio naršyklėje (headless Chrome / Edge), telefono nereikia.
+Settings for one computer go into `scripts\env.local.ps1` (not under version control):
 
 ```powershell
-tools\node\node.exe tests\bridge-test.mjs D:\am32-android-build\web-src
+$env:AM32_ANDROID_SDK = 'D:\path\to\android-sdk'   # reuse an Android SDK that is already installed
+$env:AM32_BUILD_ROOT  = 'D:\am32-android-build'    # where caches and build output go
+```
+
+- Without `AM32_ANDROID_SDK` the SDK is downloaded into `tools\android-sdk` and Google's
+  licence agreements have to be accepted.
+- `AM32_BUILD_ROOT` matters when the project sits on a slow or non-NTFS drive (exFAT, USB):
+  `node_modules` and Gradle are unusably slow there. The folder can be deleted at any
+  time; the next build recreates it.
+
+| Command | What it does |
+| --- | --- |
+| `scripts\build.ps1` | Everything from scratch. |
+| `scripts\build.ps1 -SkipWeb` | Android part only, keeps the web app that is already in the assets. |
+| `scripts\build.ps1 -WebRef master` | Builds the newest configurator code instead of the pinned version. |
+
+The configurator version is pinned in `scripts\build-web.ps1` (`$Ref`). When a new AM32
+firmware changes the settings (EEPROM) layout, a newer configurator may be needed too:
+raise `$Ref` (or use `-WebRef master`), increase `versionCode` / `versionName` in
+`android\app\build.gradle.kts` and rebuild. What exactly is changed in the upstream code is
+described at the top of `scripts\patch-web.mjs`; every patch asserts that the code it
+replaces is still there, so an upstream change fails the build instead of going unnoticed.
+
+### Signing key
+
+The first build creates `android\signing\` (key and password). Android only installs an
+update over an existing app when both are signed with the same key, so **keep a backup of
+that folder**. Without it a new version can only be installed after removing the old one.
+
+## Tests
+
+Both run in a desktop browser (headless Chrome or Edge); no phone is needed.
+
+```powershell
+tools\node\node.exe tests\bridge-test.mjs <build root>\web-src
 tools\node\node.exe tests\e2e-test.mjs
 ```
 
-- `bridge-test` – tikrina `bridge.js` (`navigator.serial` pakaitalą) su tomis pačiomis serial
-  bibliotekomis, kurias naudoja konfigūratorius, ir netikru USB sluoksniu.
-- `e2e-test` – paleidžia tikrą, į APK dedamą konfigūratorių telefono dydžio ekrane (412 px)
-  su imituotu skrydžio valdikliu ir keturiais ESC (`tests\mock-native.js`):
-  *Port select → Connect → Read → Disconnect*, ikonos, firmware sąrašas iš am32.ca ir
-  maketas (ar niekas neišlenda už ekrano, ar ESC būsenos taškai neuždengia pavadinimų).
-  Kaip ir programėlėje, puslapiui neleidžiama pasiekti jokio kito serverio.
-  Nurodžius aplanką (`tests\e2e-test.mjs C:\kur\nors`), ten išsaugomos telefono dydžio
-  ekrano nuotraukos: pradžia, atsisiuntimai, nustatymai, „Tune“ ir „Flash firmware“.
+- `bridge-test` checks `bridge.js` (the `navigator.serial` replacement) with the same
+  serial libraries the configurator uses and a fake USB layer.
+- `e2e-test` runs the real configurator that goes into the APK on a phone sized screen
+  (412 px) against a simulated flight controller with four ESCs (`tests\mock-native.js`):
+  *Port select → Connect → Read → Disconnect*, icons, the firmware list from am32.ca, and
+  the layout (nothing wider than the screen, ESC status dots not covering labels, fields
+  not running into each other). As in the app, the page cannot reach any other host.
+  Given a folder (`tests\e2e-test.mjs C:\some\folder`) it also saves phone sized
+  screenshots: home, downloads, settings, Tune and Flash firmware.
 
-`tools\node\node.exe tests\preview-server.mjs` paleidžia tą patį peržiūrai naršyklėje
-(`http://127.0.0.1:5173/`) – patogu žiūrint sąsają be telefono.
+`tools\node\node.exe tests\preview-server.mjs` serves the same thing for a look in a
+desktop browser (`http://127.0.0.1:5173/`, or `/__android/phone?src=/configurator` for a
+phone sized frame).
 
-Ko testai neapima: Kotlin pusės (tikras USB ryšys su ESC, flashinimas). Tam reikia telefono
-su OTG laidu ir įrenginio.
+Not covered by the tests: the Kotlin side (real USB, flashing). That needs a phone with an
+OTG cable and a device.
 
-Telefono maketo pataisos yra `android\app\src\main\assets\bridge\mobile.css`: nustatymų
-grupės per visą plotį ir po du laukus eilėje, ESC būsenos taškai atskiroje eilutėje virš
-pavadinimo, ESC kortelės viena po kita, failų sąrašas viename stulpelyje, telpanti apatinė
-juosta. Originalus konfigūratoriaus kodas dėl to nekeičiamas.
+## Notes
 
-## Pastabos
-
-- Konfigūratoriaus šaltinis atsisiunčiamas kaip archyvas, o ne klonuojamas: exFAT diske git
-  neveikia be `safe.directory` išimties.
-- Programėlė neturi jokios analitikos; originalaus puslapio Matomo skriptas pašalintas.
-  Internete ji kreipiasi tik į `https://am32.ca`.
+- The configurator source is downloaded as an archive instead of being cloned: git refuses
+  to work in a repository on an exFAT drive without a `safe.directory` exception.
+- The app contains no analytics; the Matomo script of the original site is removed. The
+  only host it contacts is `https://am32.ca`.
